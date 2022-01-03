@@ -1,0 +1,43 @@
+import { AxiosResponse } from 'axios';
+import { call, put, takeLatest } from 'redux-saga/effects';
+
+import { login, logout, loginSuccess, loginFailure, logoutSuccess, logoutFailure } from './authenticationSlice';
+import { postRequest, deleteRequest } from '../../app/axiosClient';
+
+import { SignInFormValues } from '../../pages/User/SignInForm';
+
+export type LoginPayload = {
+  user: SignInFormValues;
+  domain: string;
+};
+
+export function* loginSaga(action: { payload: LoginPayload }) {
+  try {
+    const response: AxiosResponse = yield call(postRequest, 'login', action.payload);
+    yield put(loginSuccess({ token: response.headers.authorization, user: response.data }));
+  } catch (e) {
+    if (typeof e === 'string') {
+      yield put(loginFailure(e.toString()));
+    } else if (e instanceof Error) {
+      yield put(loginFailure(e.message));
+    }
+  }
+}
+
+export function* logoutSaga() {
+  try {
+    yield call(deleteRequest, 'logout');
+    yield put(logoutSuccess());
+  } catch (e) {
+    if (typeof e === 'string') {
+      yield put(logoutFailure(e.toString()));
+    } else if (e instanceof Error) {
+      yield put(logoutFailure(e.message));
+    }
+  }
+}
+
+export default function* rootSaga() {
+  yield takeLatest(login, loginSaga);
+  yield takeLatest(logout, logoutSaga);
+}
